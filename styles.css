@@ -1,0 +1,558 @@
+/* WSPeek — Styles */
+
+/* Color palette */
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d30;
+  --border: #3c3c3c;
+  --text: #d4d4d4;
+  --text-muted: #858585;
+
+  /* Syntax highlighting */
+  --json-key: #9cdcfe;
+  --json-string: #ce9178;
+  --json-number: #b5cea8;
+  --json-bool: #569cd6;
+
+  /* Status indicators */
+  --status-green: #4ec9b0;
+  --status-orange: #dcdcaa;
+  --status-red: #f48771;
+
+  /* Focus and hover */
+  --focus-ring: #0e639c;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background-color: var(--bg-primary);
+  color: var(--text);
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main layout */
+main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+wspeek-incoming,
+wspeek-outgoing {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ============================================
+   WSPEEK-CONNECTION Component Styles
+   ============================================ */
+
+wspeek-connection {
+  display: block;
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+}
+
+wspeek-connection::part(connection-bar) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+}
+
+/* Connection bar input */
+#port-input,
+wspeek-connection input {
+  padding: 4px 8px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 11px;
+  width: 80px;
+}
+
+#port-input:focus,
+wspeek-connection input:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  background-color: var(--bg-primary);
+}
+
+/* Connection bar button */
+button {
+  padding: 4px 12px;
+  background-color: var(--focus-ring);
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #1177bb;
+}
+
+button:active {
+  background-color: #0d5a8a;
+}
+
+button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Status indicator */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--status-red);
+  transition: background-color 0.2s;
+}
+
+.dot.green {
+  background-color: var(--status-green);
+}
+
+.dot.orange {
+  background-color: var(--status-orange);
+}
+
+.dot.red {
+  background-color: var(--status-red);
+}
+
+#status-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ============================================
+   WSPEEK-INCOMING Component Styles
+   ============================================ */
+
+wspeek-incoming {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+}
+
+/* Message list */
+#msg-list,
+.incoming-container ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.msg-entry,
+#msg-list li {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msg-entry:hover,
+#msg-list li:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.msg-type,
+.entry-type {
+  color: var(--json-key);
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.msg-preview,
+.entry-preview {
+  color: var(--text-muted);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.msg-time,
+.entry-time {
+  color: #666;
+  font-size: 9px;
+}
+
+/* Detail view */
+#detail-view,
+.detail-container {
+  display: none;
+  flex-direction: column;
+  padding: 12px;
+  overflow-y: auto;
+  gap: 12px;
+}
+
+#detail-view.active,
+.detail-container.active {
+  display: flex;
+}
+
+.back-button,
+#btn-back {
+  padding: 4px 8px;
+  background-color: transparent;
+  color: var(--json-key);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: 11px;
+  width: fit-content;
+  transition: background-color 0.15s;
+}
+
+.back-button:hover,
+#btn-back:hover {
+  background-color: var(--bg-tertiary);
+}
+
+/* JSON tree */
+#json-tree-container,
+.tree-container {
+  flex: 1;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+ul.json-tree,
+.json-tree {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 11px;
+}
+
+.json-tree li {
+  padding: 0;
+  margin-left: 0;
+  list-style: none;
+}
+
+.json-tree .tree-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.json-tree .chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.json-tree .chevron:hover {
+  color: var(--text);
+}
+
+.json-tree .chevron.empty {
+  cursor: default;
+}
+
+.json-tree .key {
+  color: var(--json-key);
+  font-weight: bold;
+}
+
+.json-tree .str {
+  color: var(--json-string);
+}
+
+.json-tree .num {
+  color: var(--json-number);
+}
+
+.json-tree .bool-null {
+  color: var(--json-bool);
+}
+
+.json-tree .placeholder {
+  color: var(--text-muted);
+}
+
+.json-tree .children {
+  display: none;
+  margin-left: 16px;
+  border-left: 1px solid var(--border);
+  padding-left: 8px;
+  margin-top: 2px;
+}
+
+.json-tree .children.visible {
+  display: block;
+}
+
+/* Copy button */
+#btn-copy {
+  padding: 4px 12px;
+  align-self: flex-start;
+  font-size: 11px;
+}
+
+/* ============================================
+   WSPEEK-OUTGOING Component Styles
+   ============================================ */
+
+wspeek-outgoing {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.outgoing-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Input section */
+.input-section,
+#input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+textarea,
+#msg-input {
+  padding: 8px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 11px;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 120px;
+}
+
+textarea:focus,
+#msg-input:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  background-color: var(--bg-primary);
+}
+
+.input-actions,
+#input-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.input-actions button,
+#input-actions button {
+  flex: 0 0 auto;
+}
+
+.error,
+#json-error {
+  display: none;
+  color: var(--status-red);
+  font-size: 10px;
+  padding: 4px 0;
+}
+
+.error.visible,
+#json-error.visible {
+  display: block;
+}
+
+/* History & Favorites sections */
+.history-section,
+.favorites-section,
+#history-section,
+#favorites-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.history-section h3,
+.favorites-section h3,
+#history-section h3,
+#favorites-section h3 {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text-muted);
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+#history-list,
+#favorites-list,
+.history-list,
+.favorites-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-entry,
+.favorite-entry,
+#history-list li,
+#favorites-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  font-size: 10px;
+}
+
+.history-entry:hover,
+.favorite-entry:hover,
+#history-list li:hover,
+#favorites-list li:hover {
+  background-color: #333;
+}
+
+.entry-info,
+.history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.entry-type-label,
+.entry-label {
+  color: var(--json-key);
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.entry-time-label {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.star-btn,
+.delete-btn {
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: color 0.15s;
+}
+
+.star-btn:hover,
+.delete-btn:hover {
+  color: var(--text);
+}
+
+.star-btn.active {
+  color: var(--status-orange);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 8px 12px;
+  flex-shrink: 0;
+}
+
+/* Scrollbar styling (webkit browsers) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #555;
+}
