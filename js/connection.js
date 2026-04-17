@@ -378,145 +378,100 @@ class WSPeekConnection extends HTMLElement {
   }
 
   _connectViaServer(port, isSocketIO, isBridge, bridgePort) {
-    const controlUrl = 'ws://localhost:3099/ws';
-
     try {
-      const control = new WebSocket(controlUrl);
-      this.ws = control;
+      // Use IPC instead of WebSocket control channel
+      window.wspeekBridge.connect({
+        port: parseInt(port),
+        mode: isSocketIO ? 'socketio' : 'native',
+        bridge: isBridge,
+        bridgePort: isBridge ? parseInt(bridgePort) : null
+      }).then(() => {
+        console.log('[WSPeek] IPC connect initiated');
+      }).catch(err => {
+        console.error('[WSPeek] IPC connect error:', err);
+        this.updateStatus('disconnected');
+      });
 
-      control.onopen = () => {
-        console.log('[WSPeek] Connected to control channel');
-        const cmd = {
-          cmd: 'connect',
-          port: parseInt(port),
-          mode: isSocketIO ? 'socketio' : 'native',
-          bridge: isBridge,
-          bridgePort: isBridge ? parseInt(bridgePort) : null
-        };
-        control.send(JSON.stringify(cmd));
-      };
+      this.updateStatus('connecting');
 
-      control.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data);
+      // Setup IPC event listeners for incoming messages
+      window.wspeekBridge.onConnected((data) => {
+        console.log('[WSPeek] Server confirmed connection');
+        this.updateStatus('connected');
 
-          if (msg.type === 'connected') {
-            console.log('[WSPeek] Server confirmed connection');
-            this.updateStatus('connected');
+        const backendStatus = this.shadowRoot.getElementById('backend-status');
+        const frontendStatus = this.shadowRoot.getElementById('frontend-status');
 
-            // Show/hide status items based on mode
-            const backendStatus = this.shadowRoot.getElementById('backend-status');
-            const frontendStatus = this.shadowRoot.getElementById('frontend-status');
+        backendStatus.style.display = 'flex';
+        if (isBridge) {
+          frontendStatus.style.display = 'flex';
+        } else {
+          frontendStatus.style.display = 'none';
+        }
 
-            // Always show backend status when connected
-            backendStatus.style.display = 'flex';
-
-            // Show frontend status only in bridge mode
-            if (isBridge) {
-              frontendStatus.style.display = 'flex';
-            } else {
-              frontendStatus.style.display = 'none';
-            }
-
-            this._fireConnected({
-              send: (eventName, data) => {
-                if (control.readyState === WebSocket.OPEN) {
-                  control.send(JSON.stringify({
-                    cmd: 'send',
-                    eventName,
-                    data
-                  }));
-                }
-              },
-              onMessage: (cb) => {
-                this._onMessageCb = cb;
-              },
-              close: () => {
-                if (control.readyState === WebSocket.OPEN) {
-                  control.send(JSON.stringify({ cmd: 'disconnect' }));
-                  control.close();
-                }
-              }
-            }, msg.mode, isBridge);
-          }
-
-          if (msg.type === 'backend_connected') {
-            console.log('[WSPeek] Backend connected');
-            document.dispatchEvent(new CustomEvent('wspeek:backend_status', {
-              detail: { connected: true },
-              bubbles: true
-            }));
-          }
-
-          if (msg.type === 'backend_disconnected') {
-            console.log('[WSPeek] Backend disconnected');
-            document.dispatchEvent(new CustomEvent('wspeek:backend_status', {
-              detail: { connected: false },
-              bubbles: true
-            }));
-          }
-
-          if (msg.type === 'message') {
-            // Backend message
-            this._onMessageCb?.({
-              eventName: msg.eventName,
-              rawData: msg.rawData
+        // Fire connected event with adapter
+        this._fireConnected({
+          send: (eventName, data) => {
+            window.wspeekBridge.send({ eventName, data }).catch(err => {
+              console.error('[WSPeek] IPC send error:', err);
+            });
+          },
+          onMessage: (cb) => {
+            this._onMessageCb = cb;
+          },
+          close: () => {
+            window.wspeekBridge.disconnect().catch(err => {
+              console.error('[WSPeek] IPC disconnect error:', err);
             });
           }
+        }, data.mode, isBridge);
+      });
 
-          if (msg.type === 'client_message') {
-            // Message from frontend in bridge mode
-            // Dispatch to outgoing component
-            document.dispatchEvent(new CustomEvent('wspeek:client_message', {
-              detail: {
-                eventName: msg.eventName,
-                rawData: msg.rawData
-              },
-              bubbles: true
-            }));
-          }
+      window.wspeekBridge.onMessage((msg) => {
+        // Backend message
+        this._onMessageCb?.({
+          eventName: msg.eventName,
+          rawData: msg.rawData
+        });
+      });
 
-          if (msg.type === 'bridge_frontend_connected') {
-            console.log('[WSPeek] Frontend client connected to bridge');
-            document.dispatchEvent(new CustomEvent('wspeek:bridge_frontend_status', {
-              detail: { connected: true },
-              bubbles: true
-            }));
-          }
+      window.wspeekBridge.onClientMessage((msg) => {
+        // Message from frontend in bridge mode
+        document.dispatchEvent(new CustomEvent('wspeek:client_message', {
+          detail: {
+            eventName: msg.eventName,
+            rawData: msg.rawData
+          },
+          bubbles: true
+        }));
+      });
 
-          if (msg.type === 'bridge_frontend_disconnected') {
-            console.log('[WSPeek] Frontend client disconnected from bridge');
-            document.dispatchEvent(new CustomEvent('wspeek:bridge_frontend_status', {
-              detail: { connected: false },
-              bubbles: true
-            }));
-          }
-
-          if (msg.type === 'disconnected') {
-            console.log('[WSPeek] Server disconnected');
-            this.updateStatus('disconnected');
-            this._fireDisconnected();
-          }
-
-          if (msg.type === 'error') {
-            console.error('[WSPeek] Server error:', msg.reason);
-            this.updateStatus('disconnected');
-          }
-        } catch (err) {
-          console.error('[WSPeek] Message parse error:', err);
-        }
-      };
-
-      control.onerror = (err) => {
-        console.error('[WSPeek] Control channel error:', err);
-        this.updateStatus('disconnected');
-      };
-
-      control.onclose = () => {
-        console.log('[WSPeek] Control channel closed');
+      window.wspeekBridge.onDisconnected(() => {
+        console.log('[WSPeek] Server disconnected');
         this.updateStatus('disconnected');
         this._fireDisconnected();
-      };
+      });
+
+      window.wspeekBridge.onBackendConnected((data) => {
+        console.log('[WSPeek] Backend status:', data.connected);
+        document.dispatchEvent(new CustomEvent('wspeek:backend_status', {
+          detail: { connected: data.connected },
+          bubbles: true
+        }));
+      });
+
+      window.wspeekBridge.onFrontendConnected((data) => {
+        console.log('[WSPeek] Frontend status:', data.connected);
+        document.dispatchEvent(new CustomEvent('wspeek:bridge_frontend_status', {
+          detail: { connected: data.connected },
+          bubbles: true
+        }));
+      });
+
+      window.wspeekBridge.onError((data) => {
+        console.error('[WSPeek] Server error:', data.reason);
+        this.updateStatus('disconnected');
+      });
     } catch (err) {
       console.error('[WSPeek] Connection error:', err);
       this.updateStatus('disconnected');
@@ -527,7 +482,7 @@ class WSPeekConnection extends HTMLElement {
     try {
       // Load Socket.IO client library if not already present
       if (!window.io) {
-        await this._loadScript('https://cdn.socket.io/4.7.5/socket.io.min.js');
+        await this._loadScript('./socket.io.min.js');
       }
 
       const url = `http://localhost:${port}`;

@@ -2,12 +2,40 @@
   "name": "wspeek",
   "version": "1.0.0",
   "description": "Universal WebSocket debugging tool",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "electron": "electron .",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.0"
+  },
+  "build": {
+    "appId": "com.wspeek.app",
+    "productName": "WSPeek",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ws-proxy.js",
+      "index.html",
+      "js/**/*",
+      "styles.css"
+    ],
+    "mac": {
+      "target": ["dmg", "zip", "dir"],
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    }
   }
 }
