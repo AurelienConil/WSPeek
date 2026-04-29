@@ -686,12 +686,19 @@ class WSPeekOutgoing extends HTMLElement {
 
   addClientMessage(jsonString, eventName = null) {
     try {
-      const obj = JSON.parse(jsonString);
+      let obj;
+      try {
+        obj = JSON.parse(jsonString);
+      } catch {
+        // Non-JSON payload (plain string, binary-as-text, etc.) — display as-is
+        obj = jsonString;
+      }
+
       const entry = {
         raw: jsonString,
         obj,
         eventName,
-        type: eventName || obj.type || '(no type)',
+        type: eventName || (typeof obj === 'object' && obj !== null ? obj.type : null) || '(no type)',
         timestamp: new Date(),
       };
 

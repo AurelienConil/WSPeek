@@ -7,10 +7,35 @@ function createProxy(emit) {
   let backendMode = null; // 'native' or 'socketio'
   let bridgeServer = null;
   let bridgeClientSocket = null;
+  let lastConnectOpts = null;
+  let reconnectTimer = null;
+  let intentionalDisconnect = false;
+
+  function scheduleReconnect() {
+    if (intentionalDisconnect) return;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(async () => {
+      if (intentionalDisconnect || !lastConnectOpts) return;
+      console.log('[WSPeek] Auto-reconnecting to backend...');
+      try {
+        if (lastConnectOpts.mode === 'socketio') {
+          await connectSocketIOBackend(lastConnectOpts);
+        } else {
+          await connectWebSocketBackend(lastConnectOpts);
+        }
+      } catch {
+        scheduleReconnect();
+      }
+    }, 2000);
+  }
 
   return {
     async connect({ port, mode, bridge, bridgePort }) {
       console.log(`[WSPeek] Connect command: port=${port}, mode=${mode}, bridge=${bridge}`);
+
+      intentionalDisconnect = false;
+      clearTimeout(reconnectTimer);
+      lastConnectOpts = { port, mode, bridge, bridgePort };
 
       // Close old connections if exist
       if (backendSocket) {
@@ -63,6 +88,8 @@ function createProxy(emit) {
 
     async disconnect() {
       console.log('[WSPeek] Disconnect command');
+      intentionalDisconnect = true;
+      clearTimeout(reconnectTimer);
       if (backendSocket) {
         backendSocket.close();
         backendSocket = null;
@@ -113,6 +140,7 @@ function createProxy(emit) {
         console.log('[WSPeek] ✗ Backend disconnected');
         emit('ws:backend_connected', { connected: false });
         backendSocket = null;
+        scheduleReconnect();
       });
 
       backendSocket.on('error', (err) => {
@@ -208,6 +236,7 @@ function createProxy(emit) {
         console.log('[WSPeek] ✗ Backend disconnected');
         emit('ws:backend_connected', { connected: false });
         backendSocket = null;
+        scheduleReconnect();
       });
 
       backendSocket.on('connect_error', (err) => {
