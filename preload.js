@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('wspeekBridge', {
   // Invoke handlers (send + wait for response)
   connect: (opts) => ipcRenderer.invoke('ws:connect', opts),
   send: (opts) => ipcRenderer.invoke('ws:send', opts),
+  sendToFrontend: (opts) => ipcRenderer.invoke('ws:send_to_frontend', opts),
   disconnect: () => ipcRenderer.invoke('ws:disconnect'),
 
   // Event listeners (receive push messages from main process)

@@ -38,13 +38,33 @@ document.addEventListener('wspeek:disconnected', () => {
   adapter = null;
 });
 
-// Listen for send events from <wspeek-outgoing>
+// Listen for send events from <wspeek-outgoing> — sends to backend
 document.addEventListener('wspeek:send', ({ detail }) => {
   if (adapter) {
-    console.log('[WSPeek] Sending:', detail);
+    console.log('[WSPeek] Sending to backend:', detail);
     adapter.send(detail.eventName, detail.json);
   } else {
     console.warn('[WSPeek] Not connected');
+  }
+});
+
+// Listen for resend events from <wspeek-incoming> — sends to frontend client (bridge mode)
+document.addEventListener('wspeek:resend_to_frontend', ({ detail }) => {
+  console.log('[WSPeek][2] wspeek:resend_to_frontend received, json:', String(detail.json).substring(0, 60));
+  if (window.wspeekBridge) {
+    window.wspeekBridge.sendToFrontend({ eventName: detail.eventName, data: detail.json })
+      .then(result => {
+        if (result.success) {
+          console.log('[WSPeek][2] sendToFrontend IPC → success');
+        } else {
+          console.error('[WSPeek][2] sendToFrontend IPC → FAIL:', result.error);
+        }
+      })
+      .catch(err => {
+        console.error('[WSPeek][2] sendToFrontend IPC → exception:', err);
+      });
+  } else {
+    console.error('[WSPeek][2] window.wspeekBridge not available');
   }
 });
 

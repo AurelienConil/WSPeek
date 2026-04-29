@@ -17,7 +17,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js')
-    }
+    },
+    title: 'WSPeek',
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -58,4 +59,5 @@ app.on('activate', () => {
 
 ipcMain.handle('ws:connect', (_, opts) => proxy.connect(opts));
 ipcMain.handle('ws:send', (_, opts) => proxy.send(opts));
+ipcMain.handle('ws:send_to_frontend', (_, opts) => proxy.sendToFrontend(opts));
 ipcMain.handle('ws:disconnect', () => proxy.disconnect());

@@ -18,10 +18,12 @@ function createProxy(emit) {
       if (intentionalDisconnect || !lastConnectOpts) return;
       console.log('[WSPeek] Auto-reconnecting to backend...');
       try {
-        if (lastConnectOpts.mode === 'socketio') {
-          await connectSocketIOBackend(lastConnectOpts);
+        // Pass bridge=false to avoid recreating the bridge server (it's already running)
+        const opts = { ...lastConnectOpts, bridge: false };
+        if (opts.mode === 'socketio') {
+          await connectSocketIOBackend(opts);
         } else {
-          await connectWebSocketBackend(lastConnectOpts);
+          await connectWebSocketBackend(opts);
         }
       } catch {
         scheduleReconnect();
@@ -75,13 +77,57 @@ function createProxy(emit) {
       try {
         console.log(`[WSPeek] Sending to backend: ${data.substring(0, 50)}...`);
         if (backendMode === 'socketio') {
-          backendSocket.emit(eventName || 'message', JSON.parse(data));
+          let payload;
+          try { payload = JSON.parse(data); } catch { payload = data; }
+          backendSocket.emit(eventName || 'message', payload);
         } else {
           backendSocket.send(data);
         }
         return { success: true };
       } catch (err) {
         console.error('[WSPeek] Send error:', err.message);
+        return { success: false, error: err.message };
+      }
+    },
+
+    async sendToFrontend({ eventName, data }) {
+      console.log('[WSPeek][3] sendToFrontend called, data:', String(data).substring(0, 60));
+      console.log('[WSPeek][3] bridgeClientSocket:', bridgeClientSocket ? 'exists' : 'NULL');
+
+      if (!bridgeClientSocket) {
+        console.error('[WSPeek][3] FAIL — bridgeClientSocket is null (frontend not connected or disconnected)');
+        return { success: false, error: 'No frontend client connected' };
+      }
+
+      const isNativeWS = bridgeClientSocket.readyState !== undefined;
+      const isOpen = isNativeWS
+        ? bridgeClientSocket.readyState === WebSocket.OPEN
+        : bridgeClientSocket.connected;
+
+      console.log(`[WSPeek][3] socket type: ${isNativeWS ? 'native WS' : 'Socket.IO'}, isOpen: ${isOpen}`);
+      if (isNativeWS) {
+        console.log(`[WSPeek][3] readyState: ${bridgeClientSocket.readyState} (OPEN=${WebSocket.OPEN})`);
+      }
+
+      if (!isOpen) {
+        console.error('[WSPeek][3] FAIL — socket exists but is not open');
+        return { success: false, error: 'Frontend client socket not open' };
+      }
+
+      try {
+        if (isNativeWS) {
+          console.log('[WSPeek][3] Sending via native WS bridgeClientSocket.send()');
+          bridgeClientSocket.send(data);
+        } else {
+          let payload;
+          try { payload = JSON.parse(data); } catch { payload = data; }
+          console.log('[WSPeek][3] Sending via Socket.IO bridgeClientSocket.emit("message")');
+          bridgeClientSocket.emit(eventName || 'message', payload);
+        }
+        console.log('[WSPeek][3] OK — sent to frontend');
+        return { success: true };
+      } catch (err) {
+        console.error('[WSPeek][3] FAIL — exception:', err.message);
         return { success: false, error: err.message };
       }
     },
